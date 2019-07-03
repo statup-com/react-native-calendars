@@ -6,7 +6,8 @@ import styleConstructor from './style';
 
 class CalendarListItem extends Component {
   static defaultProps = {
-    hideArrows: true,
+    hideMonthArrows: true,
+    hideYearArrows: true,
     hideExtraDays: true
   };
 
@@ -21,25 +22,43 @@ class CalendarListItem extends Component {
     return r1.toString('yyyy MM') !== r2.toString('yyyy MM') || !!(r2.propbump && r2.propbump !== r1.propbump);
   }
 
-  onPressArrowLeft = (_, month) => {
-    const monthClone = month.clone();
-
-    if (this.props.onPressArrowLeft) {
-      this.props.onPressArrowLeft(_, monthClone);
+  onSubtractMonth = (_, currentDate) => {
+    const dateClone = currentDate.clone();
+    if (this.props.onSubtractMonth) {
+      this.props.onSubtractMonth(_, dateClone);
     } else if (this.props.scrollToMonth) {
-      monthClone.addMonths(-1);
-      this.props.scrollToMonth(monthClone);
+      dateClone.addMonths(-1);
+      this.props.scrollToMonth(dateClone);
     }
   }
 
-  onPressArrowRight = (_, month) => {
-    const monthClone = month.clone();
-
-    if (this.props.onPressArrowRight) {
-      this.props.onPressArrowRight(_, monthClone);
+  onAddMonth = (_, currentDate) => {
+    const dateClone = currentDate.clone();
+    if (this.props.onAddMonth) {
+      this.props.onAddMonth(_, dateClone);
     } else if (this.props.scrollToMonth) {
-      monthClone.addMonths(1);
-      this.props.scrollToMonth(monthClone);
+      dateClone.addMonths(1);
+      this.props.scrollToMonth(dateClone);
+    }
+  }
+
+  onSubtractYear = (_, currentDate) => {
+    const dateClone = currentDate.clone();
+    if (this.props.onSubtractYear) {
+      this.props.onSubtractYear(_, dateClone);
+    } else if (this.props.scrollToYear) {
+      dateClone.addYears(-1);
+      this.props.scrollToYear(dateClone);
+    }
+  }
+
+  onAddYear = (_, currentDate) => {
+    const dateClone = currentDate.clone();
+    if (this.props.onAddYear) {
+      this.props.onAddYear(_, dateClone);
+    } else if (this.props.scrollToYear) {
+      dateClone.addYears(1);
+      this.props.scrollToYear(dateClone);
     }
   }
 
@@ -51,8 +70,9 @@ class CalendarListItem extends Component {
         <Calendar
           theme={this.props.theme}
           style={[{height: this.props.calendarHeight, width: this.props.calendarWidth}, this.style.calendar, this.props.style]}
-          current={row}
-          hideArrows={this.props.hideArrows}
+          currentDate={row}
+          hideMonthArrows={this.props.hideMonthArrows}
+          hideYearArrows={this.props.hideYearArrows}
           hideExtraDays={this.props.hideExtraDays}
           disableMonthChange
           markedDates={this.props.markedDates}
@@ -64,13 +84,16 @@ class CalendarListItem extends Component {
           minDate={this.props.minDate}
           maxDate={this.props.maxDate}
           firstDay={this.props.firstDay}
-          monthFormat={this.props.monthFormat}
+          dateFormat={this.props.dateFormat}
           dayComponent={this.props.dayComponent}
           disabledByDefault={this.props.disabledByDefault}
           showWeekNumbers={this.props.showWeekNumbers}
-          renderArrow={this.props.renderArrow}
-          onPressArrowLeft={this.props.horizontal ? this.onPressArrowLeft : this.props.onPressArrowLeft}
-          onPressArrowRight={this.props.horizontal ? this.onPressArrowRight : this.props.onPressArrowRight}
+          renderMonthArrow={this.props.renderMonthArrow}
+          renderYearArrow={this.props.renderYearArrow}
+          onSubtractMonth={this.props.horizontal ? this.onSubtractMonth : this.props.onSubtractMonth}
+          onSubtractYear={this.props.horizontal ? this.onSubtractYear : this.props.onSubtractYear}
+          onAddMonth={this.props.horizontal ? this.onAddMonth : this.props.onAddMonth}
+          onAddYear={this.props.horizontal ? this.onAddYear : this.props.onAddYear}
           headerStyle={this.props.headerStyle}
         />);
     } else {

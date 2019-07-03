@@ -27,7 +27,7 @@ export default class CalendarsScreen extends Component {
         <Text style={styles.text}>Calendar with marked dates and hidden arrows</Text>
         <Calendar
           style={styles.calendar}
-          current={'2012-05-16'}
+          currentDate={'2012-05-16'}
           minDate={'2012-05-10'}
           maxDate={'2012-05-29'}
           firstDay={1}
@@ -39,7 +39,8 @@ export default class CalendarsScreen extends Component {
             '2012-05-27': {disabled: true, activeOpacity: 0}
           }}
           // disabledByDefault={true}
-          hideArrows={true}
+          hideMonthArrows
+          hideYearArrows
         />
         <Text style={styles.text}>Calendar with custom day component</Text>
         <Calendar
@@ -51,7 +52,7 @@ export default class CalendarsScreen extends Component {
         <Text style={styles.text}>Calendar with period marking and spinner</Text>
         <Calendar
           style={styles.calendar}
-          current={'2012-05-16'}
+          currentDate={'2012-05-16'}
           minDate={'2012-05-10'}
           displayLoadingIndicator
           markingType={'period'}
@@ -84,23 +85,20 @@ export default class CalendarsScreen extends Component {
             '2012-05-24': {startingDay: true, color: 'gray'},
             '2012-05-25': {color: 'gray'},
             '2012-05-26': {endingDay: true, color: 'gray'}}}
-          hideArrows={false}
         />
         <Text style={styles.text}>Calendar with multi-dot marking</Text>
         <Calendar
           style={styles.calendar}
-          current={'2012-05-16'}
+          currentDate={'2012-05-16'}
           markingType={'multi-dot'}
           markedDates={{
             '2012-05-08': {dots: [{key: 'vacation', color: 'blue', selectedDotColor: 'white'}, {key: 'massage', color: 'red', selectedDotColor: 'white'}], selected: true},
             '2012-05-09': {dots: [{key: 'vacation', color: 'blue', selectedDotColor: 'red'}, {key: 'massage', color: 'red', selectedDotColor: 'blue'}], disabled: true}
-          }}
-          hideArrows={false}
-        />
+          }} />
         <Text style={styles.text}>Calendar with multi-period marking</Text>
         <Calendar
           style={styles.calendar}
-          current={'2012-05-16'}
+          currentDate={'2012-05-16'}
           markingType={'multi-period'}
           markedDates={{
             '2012-05-16': {
@@ -123,9 +121,7 @@ export default class CalendarsScreen extends Component {
                 { startingDay: false, endingDay: false, color: '#f0e68c' },
               ]
             },
-          }}
-          hideArrows={false}
-        />
+          }} />
         <Text style={styles.text}>Calendar with week numbers</Text>
         <Calendar
           onDayPress={this.onDayPress}
@@ -139,7 +135,7 @@ export default class CalendarsScreen extends Component {
           style={styles.calendar}
           onDayLongPress={this.onDayLongPress}
           hideExtraDays
-          current={'2018-03-01'}
+          currentDate={'2018-03-01'}
           minDate={'2018-03-01'}
           markingType={'custom'}
           markedDates={{

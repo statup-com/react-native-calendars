@@ -6,16 +6,16 @@ import XDate from 'xdate';
 import {xdateToData, parseDate} from '../interface';
 import styleConstructor from './style';
 import dateutils from '../dateutils';
-import Calendar from '../calendar';
 import CalendarListItem from './item';
 import CalendarHeader from '../calendar/header/index';
+import { CalendarPropTypes } from '../propTypes';
 
 
 const {width} = Dimensions.get('window');
 
 class CalendarList extends Component {
   static propTypes = {
-    ...Calendar.propTypes,
+    ...CalendarPropTypes,
     // Max amount of months allowed to scroll to the past. Default = 50
     pastScrollRange: PropTypes.number,
     // Max amount of months allowed to scroll to the future. Default = 50
@@ -61,7 +61,7 @@ class CalendarList extends Component {
 
     const rows = [];
     const texts = [];
-    const date = parseDate(props.current) || XDate();
+    const date = parseDate(props.currentDate) || XDate();
     
     for (let i = 0; i <= this.props.pastScrollRange + this.props.futureScrollRange; i++) {
       const rangeDate = date.clone().addMonths(i - this.props.pastScrollRange, true);
@@ -82,13 +82,15 @@ class CalendarList extends Component {
       rows,
       texts,
       openDate: date,
-      currentMonth: parseDate(props.current)
+      currentDate: props.currentDate ? parseDate(props.currentDate) : XDate(),
     };
 
     this.onViewableItemsChangedBound = this.onViewableItemsChanged.bind(this);
     this.renderCalendarBound = this.renderCalendar.bind(this);
     this.getItemLayout = this.getItemLayout.bind(this);
     this.onLayout = this.onLayout.bind(this);
+    this.changeMonth = this.changeMonth.bind(this);
+    this.changeYear = this.changeYear.bind(this);
   }
 
   onLayout(event) {
@@ -98,57 +100,64 @@ class CalendarList extends Component {
   }
 
   scrollToDay(d, offset, animated) {
-    const day = parseDate(d);
-    const diffMonths = Math.round(this.state.openDate.clone().setDate(1).diffMonths(day.clone().setDate(1)));
+    const scrollToDate = parseDate(d);
+    const diffMonths = Math.round(this.state.openDate.clone().setDate(1).diffMonths(scrollToDate.clone().setDate(1)));
     const size = this.props.horizontal ? this.props.calendarWidth : this.props.calendarHeight;
     let scrollAmount = (size * this.props.pastScrollRange) + (diffMonths * size) + (offset || 0);
     
     if (!this.props.horizontal) {
       let week = 0;
-      const days = dateutils.page(day, this.props.firstDay);
+      const days = dateutils.page(scrollToDate, this.props.firstDay);
       for (let i = 0; i < days.length; i++) {
         week = Math.floor(i / 7);
-        if (dateutils.sameDate(days[i], day)) {
+        if (dateutils.sameDate(days[i], scrollToDate)) {
           scrollAmount += 46 * week;
           break;
         }
       }
     }
     this.listView.scrollToOffset({offset: scrollAmount, animated});
+    
+    this.setState({currentDate: scrollToDate.clone()});
   }
 
   scrollToMonth(m) {
-    const month = parseDate(m);
-    const scrollTo = month || this.state.openDate;
+    const scrollToDate = parseDate(m);
+    const scrollTo = scrollToDate || this.state.openDate;
     let diffMonths = Math.round(this.state.openDate.clone().setDate(1).diffMonths(scrollTo.clone().setDate(1)));
     const size = this.props.horizontal ? this.props.calendarWidth : this.props.calendarHeight;
     const scrollAmount = (size * this.props.pastScrollRange) + (diffMonths * size);
-
     this.listView.scrollToOffset({offset: scrollAmount, animated: false});
+    
+    this.setState({currentDate: scrollToDate.clone()});
+  }
+  
+  componentDidUpdate(prevProps) {
+    const previousCurrent = parseDate(prevProps.currentDate);
+    const currentCurrent = parseDate(this.props.currentDate);
+    if (previousCurrent && currentCurrent && previousCurrent.getTime() !== currentCurrent.getTime()) {
+      this.scrollToMonth(currentCurrent);
+    }
   }
 
-  componentWillReceiveProps(props) {
-    const current = parseDate(this.props.current);
-    const nextCurrent = parseDate(props.current);
-    
-    if (nextCurrent && current && nextCurrent.getTime() !== current.getTime()) {
-      this.scrollToMonth(nextCurrent);
-    }
-
-    const rowclone = this.state.rows;
+  static getDerivedStateFromProps(nextProps, prevState) {
+    const rowclone = prevState.rows;
     const newrows = [];
     
     for (let i = 0; i < rowclone.length; i++) {
-      let val = this.state.texts[i];
+      let val = prevState.texts[i];
       if (rowclone[i].getTime) {
         val = rowclone[i].clone();
         val.propbump = rowclone[i].propbump ? rowclone[i].propbump + 1 : 1;
       }
       newrows.push(val);
     }
-    this.setState({
-      rows: newrows
-    });
+
+    return { 
+      ...prevState, 
+      rows: newrows,
+      currentDate: parseDate(prevState.currentDate) 
+    };
   }
 
   onViewableItemsChanged({viewableItems}) {
@@ -168,25 +177,26 @@ class CalendarList extends Component {
     for (let i = 0; i < rowclone.length; i++) {
       let val = rowclone[i];
       const rowShouldBeRendered = rowIsCloseToViewable(i, 1);
-      
+
       if (rowShouldBeRendered && !rowclone[i].getTime) {
         val = this.state.openDate.clone().addMonths(i - this.props.pastScrollRange, true);
       } else if (!rowShouldBeRendered) {
         val = this.state.texts[i];
       }
+
       newrows.push(val);
       if (rowIsCloseToViewable(i, 0)) {
         visibleMonths.push(xdateToData(val));
       }
     }
-    
-    if (this.props.onVisibleMonthsChange) {
-      this.props.onVisibleMonthsChange(visibleMonths);
+
+    if (this.props.onVisibleDateChange) {
+      this.props.onVisibleDateChange(visibleMonths);
     }
 
     this.setState({
       rows: newrows,
-      currentMonth: parseDate(visibleMonths[0])
+      currentDate: parseDate(visibleMonths[0])
     });
   }
 
@@ -215,27 +225,31 @@ class CalendarList extends Component {
     return diffMonths;
   }
 
-  addMonth = (count) => {
-    this.updateMonth(this.state.currentMonth.clone().addMonths(count, true));
+  changeMonth(count) {
+    this.updateDate(this.state.currentDate.clone().addMonths(count, true));
   }
 
-  updateMonth(day, doNotTriggerListeners) {
-    if (day.toString('yyyy MM') === this.state.currentMonth.toString('yyyy MM')) {
+  changeYear(count) {
+    this.updateDate(this.state.currentDate.clone().addYears(count, true));
+  }
+
+  updateDate(day, doNotTriggerListeners) {
+    if (day.toString('yyyy MM') === this.state.currentDate.toString('yyyy MM')) {
       return;
     }
 
     this.setState({
-      currentMonth: day.clone()
+      currentDate: day.clone()
     }, () => {
-      this.scrollToMonth(this.state.currentMonth);
+      this.scrollToMonth(this.state.currentDate);
       
       if (!doNotTriggerListeners) {
-        const currMont = this.state.currentMonth.clone();
-        if (this.props.onMonthChange) {
-          this.props.onMonthChange(xdateToData(currMont));
+        const currMont = this.state.currentDate.clone();
+        if (this.props.onDateChange) {
+          this.props.onDateChange(xdateToData(currMont));
         }
-        if (this.props.onVisibleMonthsChange) {
-          this.props.onVisibleMonthsChange([xdateToData(currMont)]);
+        if (this.props.onVisibleDateChange) {
+          this.props.onVisibleDateChange([xdateToData(currMont)]);
         }
       }
     });
@@ -247,25 +261,30 @@ class CalendarList extends Component {
     
     if (useStaticHeader) {
       let indicator;
-      if (this.props.showIndicator) {
+      if (this.props.displayLoadingIndicator) {
         indicator = <ActivityIndicator color={this.props.theme && this.props.theme.indicatorColor}/>;
       }
 
       return (
         <CalendarHeader
-          style={[this.style.staticHeader, this.props.headerStyle]}
-          month={this.state.currentMonth}
-          addMonth={this.addMonth}
-          showIndicator={indicator}
-          theme={this.props.theme}
-          hideArrows={this.props.hideArrows}
+          changeMonth={this.changeMonth}
+          changeYear={this.changeYear}
+          currentDate={this.state.currentDate}
+          dateFormat={this.props.dateFormat}
+          displayLoadingIndicator={indicator}
           firstDay={this.props.firstDay}
-          renderArrow={this.props.renderArrow}
-          monthFormat={this.props.monthFormat}
           hideDayNames={this.props.hideDayNames}
-          weekNumbers={this.props.showWeekNumbers}
-          onPressArrowLeft={this.props.onPressArrowLeft}
-          onPressArrowRight={this.props.onPressArrowRight}
+          hideDoubleArrows={this.props.hideYearArrows}
+          hideSingleArrows={this.props.hideMonthArrows}
+          onPressDoubleArrowLeft={this.props.onSubtractYear}
+          onPressDoubleArrowRight={this.props.onAddYear}
+          onPressSingleArrowLeft={this.props.onSubtractMonth}
+          onPressSingleArrowRight={this.props.onAddMonth}
+          renderDoubleArrow={this.props.renderYearArrow}
+          renderSingleArrow={this.props.renderMonthArrow}
+          showWeekNumbers={this.props.showWeekNumbers}
+          style={[this.style.staticHeader, this.props.headerStyle]}
+          theme={this.props.theme}
         />
       );
     }

@@ -360,8 +360,8 @@ If you implement an awesome day component please make a PR so that other people 
 
 ```javascript
 <CalendarList
-  // Callback which gets executed when visible months change in scroll view. Default = undefined
-  onVisibleMonthsChange={(months) => {console.log('now these months are visible', months);}}
+  // Callback which gets executed when visible date change in scroll view. Default = undefined
+  onVisibleDateChange={(months) => {console.log('now these months are visible', months);}}
   // Max amount of months allowed to scroll to the past. Default = 50
   pastScrollRange={50}
   // Max amount of months allowed to scroll to the future. Default = 50

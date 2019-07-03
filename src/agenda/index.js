@@ -184,7 +184,7 @@ export default class AgendaView extends Component {
     }
   }
 
-  onVisibleMonthsChange(months) {
+  onVisibleDateChange(months) {
     if (this.props.items && !this.state.firstResevationLoad) {
       clearTimeout(this.scrollTimeout);
       this.scrollTimeout = setTimeout(() => {
@@ -396,7 +396,7 @@ export default class AgendaView extends Component {
               }}
               calendarWidth={this.viewWidth}
               theme={this.props.theme}
-              onVisibleMonthsChange={this.onVisibleMonthsChange.bind(this)}
+              onVisibleDateChange={this.onVisibleDateChange.bind(this)}
               ref={(c) => this.calendar = c}
               minDate={this.props.minDate}
               maxDate={this.props.maxDate}

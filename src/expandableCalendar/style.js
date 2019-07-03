@@ -86,9 +86,6 @@ export default function styleConstructor(theme={}) {
       flexDirection: 'row',
       justifyContent: 'space-around'
     },
-    arrowImage: {
-      tintColor: appStyle.arrowColor
-    },
     todayButtonContainer: {
       alignItems: appStyle.todayButtonPosition === 'right' ? 'flex-end' : 'flex-start',
       position: 'absolute', 

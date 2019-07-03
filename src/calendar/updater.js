@@ -22,7 +22,7 @@ export default function shouldComponentUpdate(nextProps, nextState) {
     return prev;
   }, shouldUpdate);
 
-  shouldUpdate = ['minDate', 'maxDate', 'current'].reduce((prev, next) => {
+  shouldUpdate = ['minDate', 'maxDate', 'currentDate'].reduce((prev, next) => {
     const prevDate = parseDate(this.props[next]);
     const nextDate = parseDate(nextProps[next]);
     if (prev.update) {
@@ -40,12 +40,11 @@ export default function shouldComponentUpdate(nextProps, nextState) {
     return prev;
   }, shouldUpdate);
 
-  if (nextState.currentMonth !== this.state.currentMonth) {
+  if (nextState.currentDate !== this.state.currentDate) {
     shouldUpdate = {
       update: true,
-      field: 'current'
+      field: 'currentDate'
     };
   }
-  //console.log(shouldUpdate.field, shouldUpdate.update);
   return shouldUpdate.update;
 }

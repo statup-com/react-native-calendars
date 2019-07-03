@@ -74,7 +74,7 @@ class ExpandableCalendar extends Component {
     this._weekCalendarStyles = {style: {}};
     this.wrapper = undefined;
     this.calendar = undefined;
-    this.visibleMonth = this.getMonth(this.props.context.date);
+    this.visibleDate = props.context.date;
     this.initialDate = props.context.date; // should be set only once!!!
 
     this.state = {
@@ -119,16 +119,16 @@ class ExpandableCalendar extends Component {
     if (this.calendar) {
       if (!this.props.horizontal) {
         this.calendar.scrollToDay(XDate(date), 0, true);
-      } else if (this.getMonth(date) !== this.visibleMonth) { // don't scroll if the month is already visible
+      } else  { 
+        // don't scroll if the month/year is already visible      
         this.calendar.scrollToMonth(XDate(date));
       }
     }
   }
 
-  scrollPage(next) {
+  scrollByMonth(next) {
     if (this.props.horizontal) {
       const d = parseDate(this.props.context.date);
-      
       if (this.state.position === POSITIONS.OPEN) {
         d.setDate(1);
         d.addMonths(next ? 1 : -1);
@@ -139,6 +139,28 @@ class ExpandableCalendar extends Component {
           dayOfTheWeek = 7 + dayOfTheWeek;
         }
         const firstDayOfWeek = (next ? 7 : -7) - dayOfTheWeek + firstDay;
+        d.addDays(firstDayOfWeek);
+      }
+      _.invoke(this.props.context, 'setDate', this.getDateString(d), UPDATE_SOURCES.PAGE_SCROLL); 
+    }
+  }
+
+  scrollByYear(next) {
+    if (this.props.horizontal) {
+      const d = parseDate(this.props.context.date);     
+      d.addYears(next ? 1 : -1);
+
+      if (this.state.position === POSITIONS.OPEN) {
+        d.setDate(1);
+      } else {
+        const {firstDay} = this.props;
+
+        let dayOfTheWeek = d.getDay();
+        if (dayOfTheWeek < firstDay && firstDay > 0) {
+          dayOfTheWeek = 7 + dayOfTheWeek;
+        }
+
+        const firstDayOfWeek = -dayOfTheWeek + firstDay;
         d.addDays(firstDayOfWeek);
       }
       _.invoke(this.props.context, 'setDate', this.getDateString(d), UPDATE_SOURCES.PAGE_SCROLL); 
@@ -194,15 +216,32 @@ class ExpandableCalendar extends Component {
   }
 
   isLaterDate(date1, date2) {
-    if (date1.year > this.getYear(date2)) {
+    const parsedDate1 = _.isObject(date1) && _.has(date1, 'getFullYear') ? date1 : XDate(date1);
+    const parsedDate2 = _.isObject(date2) && _.has(date2, 'getFullYear') ? date2 : XDate(date2);
+
+    if (parsedDate1.getFullYear() > parsedDate2.getFullYear()) {
       return true;
     }
-    if (date1.year === this.getYear(date2)) {
-      if (date1.month > this.getMonth(date2)) {
-        return true;
-      }
+
+    if (parsedDate1.getFullYear() === parsedDate2.getFullYear() && 
+        parsedDate1.getMonth() > parsedDate2.getMonth()) {
+      return true;
     }
     return false;
+  }
+
+  isSameMonthAndYear(date1, date2) {
+    const parsedDate1 = _.isObject(date1) && _.has(date1, 'getFullYear') ? date1 : XDate(date1);
+    const parsedDate2 = _.isObject(date2) && _.has(date2, 'getFullYear') ? date2 : XDate(date2);
+    return (
+      parsedDate1.getFullYear() === parsedDate2.getFullYear() &&
+      parsedDate1.getMonth() === parsedDate2.getMonth());
+  }
+
+  isExactlySameDate(date1, date2) {
+    const parsedDate1 = _.isObject(date1) && _.has(date1, 'getFullYear') ? date1 : XDate(date1);
+    const parsedDate2 = _.isObject(date2) && _.has(date2, 'getFullYear') ? date2 : XDate(date2);
+    return parsedDate1 === parsedDate2;
   }
 
   /** Pan Gesture */
@@ -221,9 +260,11 @@ class ExpandableCalendar extends Component {
     }
     return gestureState.dy > 5 || gestureState.dy < -5;
   };
+  
   handlePanResponderGrant = () => {
   
   };
+
   handlePanResponderMove = (e, gestureState) => {
     // limit min height to closed height
     this._wrapperStyles.style.height = Math.max(this.closedHeight, this._height + gestureState.dy);
@@ -240,6 +281,7 @@ class ExpandableCalendar extends Component {
 
     this.updateNativeStyles();
   };
+
   handlePanResponderEnd = () => {
     this._height = this._wrapperStyles.style.height;
     this.bounceToPosition();
@@ -298,14 +340,23 @@ class ExpandableCalendar extends Component {
       }).start();
     }
   }
-  
+ 
   /** Events */
 
   onPressArrowLeft = () => {
-    this.scrollPage(false);
+    this.scrollByMonth(false);
   }
+
   onPressArrowRight = () => {
-    this.scrollPage(true);
+    this.scrollByMonth(true);
+  }
+
+  onPressDoubleArrowLeft = () => {
+    this.scrollByYear(false);
+  }
+
+  onPressDoubleArrowRight = () => {
+    this.scrollByYear(true);
   }
 
   onDayPress = (value) => { // {year: 2019, month: 4, day: 22, timestamp: 1555977600000, dateString: "2019-04-23"}
@@ -318,20 +369,21 @@ class ExpandableCalendar extends Component {
     }, 0);
   }
 
-  onVisibleMonthsChange = (value) => {
-    if (this.visibleMonth !== _.first(value).month) {
-      this.visibleMonth = _.first(value).month; // equivalent to this.getMonth(value[0].dateString)
+  onVisibleDateChange = (value) => {
+    const firstOne = _.first(value);
+    if (!_.isEmpty(firstOne) && !this.isSameMonthAndYear(this.visibleDate, firstOne)) {
+      this.visibleDate = firstOne; 
 
       // for horizontal scroll
       const {date, updateSource} = this.props.context;
-      
-      if (this.visibleMonth !== this.getMonth(date) && updateSource !== UPDATE_SOURCES.DAY_PRESS) {
-        const next = this.isLaterDate(_.first(value), date);
-        this.scrollPage(next);
+
+      if (!this.isExactlySameDate(this.visibleDate, date) && updateSource !== UPDATE_SOURCES.DAY_PRESS) {
+        const next = this.isLaterDate(firstOne, date);
+        this.scrollByMonth(next);
       }
 
       // updating openHeight
-      setTimeout(() => { // to wait for setDate() call in horizontal scroll (this.scrollPage())
+      setTimeout(() => { // to wait for setDate() call in horizontal scroll (this.scrollByMonth())
         const numberOfWeeks = this.getNumberOfWeeksInMonth(parseDate(this.props.context.date));
         if (numberOfWeeks !== this.numberOfWeeks) {
           this.numberOfWeeks = numberOfWeeks;
@@ -375,7 +427,6 @@ class ExpandableCalendar extends Component {
 
   renderHeader() {
     const monthYear = XDate(this.props.context.date).toString('MMMM yyyy');
-
     return (
       <Animated.View
         ref={e => this.header = e}
@@ -453,17 +504,21 @@ class ExpandableCalendar extends Component {
             testID="calendar"
             {...this.props}
             ref={r => this.calendar = r}
-            current={this.initialDate}
+            currentDate={this.visibleDate}
             onDayPress={this.onDayPress}
-            onVisibleMonthsChange={this.onVisibleMonthsChange}
+            onVisibleDateChange={this.onVisibleDateChange}
             pagingEnabled
             scrollEnabled={isOpen}
             markedDates={this.getMarkedDates()}
-            hideArrows={this.shouldHideArrows()}
-            onPressArrowLeft={this.onPressArrowLeft}
-            onPressArrowRight={this.onPressArrowRight}
+            hideMonthArrows={this.shouldHideArrows()}
+            hideYearArrows={this.shouldHideArrows()}
+            onSubtractMonth={this.onPressArrowLeft}
+            onAddMonth={this.onPressArrowRight}
+            onSubtractYear={this.onPressDoubleArrowLeft}
+            onAddYear={this.onPressDoubleArrowRight}
             hideExtraDays={!horizontal}
-            renderArrow={this.renderArrow}
+            renderMonthArrow={this.props.renderMonthArrow}
+            renderYearArrow={this.props.renderYearArrow}
             staticHeader
           /> 
           {horizontal && this.renderWeekCalendar()}
