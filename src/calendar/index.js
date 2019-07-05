@@ -42,7 +42,7 @@ class Calendar extends Component {
     const inbound = parseDate(nextProps.currentDate);
     const outbound = prevState.currentDate;
     return (inbound && inbound.toString('yyyy MM') !== outbound.toString('yyyy MM')) ?
-        { currentDate: inbound.clone() } : prevState;
+        { currentDate: inbound.clone() } : { };
   }
 
   updateDate(day, doNotTriggerListeners) {
