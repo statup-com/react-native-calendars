@@ -39,10 +39,12 @@ class Calendar extends Component {
   }
 
   static getDerivedStateFromProps(nextProps, prevState) {
-    const inbound = parseDate(nextProps.currentDate);
-    const outbound = prevState.currentDate;
-    return (inbound && inbound.toString('yyyy MM') !== outbound.toString('yyyy MM')) ?
-        { currentDate: inbound.clone() } : { };
+    const propsDate = parseDate(nextProps.currentDate);
+    const stateDate = prevState.currentDate;
+    return { currentDate: (stateDate === undefined) ? 
+        propsDate.clone() : 
+        stateDate 
+    };
   }
 
   updateDate(day, doNotTriggerListeners) {
